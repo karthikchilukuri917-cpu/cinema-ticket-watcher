@@ -113,7 +113,7 @@ def test_discover_hyderabad_cinemas():
 
     assert session.requested_urls == [
         "https://in.bookmyshow.com/"
-        "hyderabad/cinemas"
+        "hyderabad/venue-list"
     ]
 
 

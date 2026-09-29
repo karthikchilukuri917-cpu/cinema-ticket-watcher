@@ -843,7 +843,7 @@ class BookMyShowCinemaResolver:
 
         url = (
             f"{BOOKMYSHOW_BASE_URL}/"
-            f"{city_slug}/cinemas"
+            f"{city_slug}/venue-list"
         )
 
         try:

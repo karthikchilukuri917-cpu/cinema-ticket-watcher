@@ -47,8 +47,8 @@ class BookMyShowMovieProvider:
         city_slug = self._city_slug(city)
 
         return (
-            f"{BOOKMYSHOW_BASE_URL}/explore/"
-            f"movies-{city_slug}?cat=MT"
+            f"{BOOKMYSHOW_BASE_URL}/explore/home/"
+            f"{city_slug}"
         )
 
     def get_movies(
