@@ -58,3 +58,81 @@ CREATE INDEX IF NOT EXISTS idx_watch_history_watch_id
 
 CREATE INDEX IF NOT EXISTS idx_watch_history_timestamp
     ON watch_history(timestamp);
+    -- =========================================================
+-- BOOKMYSHOW CATALOGUE
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS cinema_catalogue (
+    city TEXT NOT NULL,
+    city_code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    provider_id TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (city_code, provider_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cinema_catalogue_city
+    ON cinema_catalogue(city);
+
+
+CREATE TABLE IF NOT EXISTS movie_catalogue (
+    city TEXT NOT NULL,
+    event_code TEXT NOT NULL,
+    title TEXT NOT NULL,
+    event_name TEXT,
+    event_url TEXT,
+    event_group TEXT,
+    language TEXT,
+    dimension TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (city, event_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_movie_catalogue_city
+    ON movie_catalogue(city);
+
+CREATE INDEX IF NOT EXISTS idx_movie_catalogue_title
+    ON movie_catalogue(title); 
+CREATE INDEX IF NOT EXISTS idx_watch_history_timestamp
+    ON watch_history(timestamp);
+
+-- =========================================================
+-- BOOKMYSHOW CATALOGUE
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS cinema_catalogue (
+    city TEXT NOT NULL,
+    city_code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    provider_id TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (city_code, provider_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cinema_catalogue_city
+    ON cinema_catalogue(city);
+
+CREATE TABLE IF NOT EXISTS movie_catalogue (
+    city TEXT NOT NULL,
+    event_code TEXT NOT NULL,
+    title TEXT NOT NULL,
+    event_name TEXT,
+    event_url TEXT,
+    event_group TEXT,
+    language TEXT,
+    dimension TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    PRIMARY KEY (city, event_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_movie_catalogue_city
+    ON movie_catalogue(city);
+
+CREATE INDEX IF NOT EXISTS idx_movie_catalogue_title
+    ON movie_catalogue(title);

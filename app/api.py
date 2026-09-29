@@ -2,6 +2,9 @@ from contextlib import asynccontextmanager
 from datetime import date
 from uuid import uuid4
 
+from app.postgres_cinema_catalogue import PostgreSQLCinemaCatalogue
+from app.postgres_movie_catalogue import PostgreSQLMovieCatalogue
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
@@ -283,6 +286,24 @@ def get_cinemas(city: str):
             detail="City cannot be empty.",
         )
 
+    catalogue = PostgreSQLCinemaCatalogue()
+
+    # -------------------------------------------------
+    # First: use PostgreSQL catalogue
+    # -------------------------------------------------
+
+    stored_cinemas = catalogue.list_by_city(city)
+
+    if stored_cinemas:
+        return {
+            "city": city,
+            "cinemas": stored_cinemas,
+        }
+
+    # -------------------------------------------------
+    # Fallback: BookMyShow
+    # -------------------------------------------------
+
     try:
         resolver = BookMyShowCinemaResolver()
         venues = resolver.discover(city)
@@ -323,6 +344,32 @@ def get_movies(
             status_code=400,
             detail="City cannot be empty.",
         )
+
+    catalogue = PostgreSQLMovieCatalogue()
+
+    # -------------------------------------------------
+    # First: use PostgreSQL catalogue
+    # -------------------------------------------------
+
+    stored_movies = catalogue.list_by_city(city)
+
+    if stored_movies:
+        return [
+            {
+                "title": movie["title"],
+                "event_name": movie["event_name"],
+                "event_code": movie["event_code"],
+                "event_url": movie["event_url"],
+                "event_group": movie["event_group"],
+                "language": movie["language"],
+                "dimension": movie["dimension"],
+            }
+            for movie in stored_movies
+        ]
+
+    # -------------------------------------------------
+    # Fallback: BookMyShow
+    # -------------------------------------------------
 
     try:
         provider = BookMyShowMovieProvider()
