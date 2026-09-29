@@ -1,3 +1,5 @@
+import os
+import secrets
 from contextlib import asynccontextmanager
 from datetime import date
 from uuid import uuid4
@@ -6,7 +8,7 @@ from app.postgres_cinema_catalogue import PostgreSQLCinemaCatalogue
 from app.postgres_movie_catalogue import PostgreSQLMovieCatalogue
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 
 load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
@@ -98,6 +100,29 @@ class WatchResponse(BaseModel):
     active: bool
     running: bool
     completed: bool
+
+
+class CinemaCatalogueIngest(BaseModel):
+    name: str
+    provider_id: str
+    slug: str
+
+
+class MovieCatalogueIngest(BaseModel):
+    event_code: str
+    title: str
+    event_name: str | None = None
+    event_url: str | None = None
+    event_group: str | None = None
+    language: str | None = None
+    dimension: str | None = None
+
+
+class CatalogueIngestRequest(BaseModel):
+    city: str
+    city_code: str
+    cinemas: list[CinemaCatalogueIngest]
+    movies: list[MovieCatalogueIngest]
 
 
 class HealthResponse(BaseModel):
@@ -248,6 +273,93 @@ def health():
         "running_watches": len(
             running_watch_ids
         ),
+    }
+
+
+# =========================================================
+# Internal Catalogue Ingestion
+# =========================================================
+
+
+@app.post("/internal/catalogue/ingest")
+def ingest_catalogue(
+    payload: CatalogueIngestRequest,
+    x_catalogue_token: str | None = Header(default=None),
+):
+    expected_token = os.getenv("CATALOGUE_INGEST_TOKEN")
+
+    if not expected_token:
+        raise HTTPException(
+            status_code=503,
+            detail="Catalogue ingestion is not configured.",
+        )
+
+    if not x_catalogue_token or not secrets.compare_digest(
+        x_catalogue_token,
+        expected_token,
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid catalogue ingestion token.",
+        )
+
+    city = payload.city.strip()
+    city_code = payload.city_code.strip().upper()
+
+    if not city:
+        raise HTTPException(
+            status_code=400,
+            detail="City cannot be empty.",
+        )
+
+    if not city_code:
+        raise HTTPException(
+            status_code=400,
+            detail="City code cannot be empty.",
+        )
+
+    cinema_catalogue = PostgreSQLCinemaCatalogue()
+    movie_catalogue = PostgreSQLMovieCatalogue()
+
+    cinemas = [
+        {
+            "name": cinema.name,
+            "provider_id": cinema.provider_id,
+            "slug": cinema.slug,
+        }
+        for cinema in payload.cinemas
+    ]
+
+    movies = [
+        {
+            "event_code": movie.event_code,
+            "title": movie.title,
+            "event_name": movie.event_name,
+            "event_url": movie.event_url,
+            "event_group": movie.event_group,
+            "language": movie.language,
+            "dimension": movie.dimension,
+        }
+        for movie in payload.movies
+    ]
+
+    cinema_catalogue.replace_city(
+        city=city,
+        city_code=city_code,
+        cinemas=cinemas,
+    )
+
+    movie_catalogue.replace_city(
+        city=city,
+        movies=movies,
+    )
+
+    return {
+        "status": "success",
+        "city": city,
+        "city_code": city_code,
+        "cinemas": len(cinemas),
+        "movies": len(movies),
     }
 
 
