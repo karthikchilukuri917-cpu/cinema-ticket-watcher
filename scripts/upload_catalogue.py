@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import os
 
 import requests
@@ -14,35 +15,53 @@ RENDER_API_URL = os.getenv(
 )
 
 
-def main() -> None:
-    token = os.getenv("CATALOGUE_INGEST_TOKEN")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Discover a city's BookMyShow catalogue and upload it to Render."
+    )
 
+    parser.add_argument(
+        "--city",
+        required=True,
+        help="City to ingest, for example: Hyderabad, Mumbai, Bengaluru",
+    )
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+
+    token = os.getenv("CATALOGUE_INGEST_TOKEN")
     if not token:
         raise RuntimeError(
             "CATALOGUE_INGEST_TOKEN is not configured."
         )
 
-    city = "Hyderabad"
+    city = args.city.strip()
+
+    if not city:
+        raise ValueError("City cannot be empty.")
 
     print("=" * 70)
     print("BOOKMYSHOW CATALOGUE UPLOAD")
     print("=" * 70)
 
-    # ---------------------------------------------------------
-    # 1. Discover cinemas locally
-    # ---------------------------------------------------------
+    print(f"\nCity: {city}")
 
+    # ---------------------------------------------------------
+    # Discover cinemas
+    # ---------------------------------------------------------
     print("\nDiscovering cinemas...")
 
     cinema_resolver = BookMyShowCinemaResolver()
-
     venues = cinema_resolver.discover(city)
 
     print(f"Cinemas discovered: {len(venues)}")
 
     if not venues:
         raise RuntimeError(
-            "No cinemas discovered."
+            f"No cinemas discovered for city: {city}"
         )
 
     city_code = venues[0].city_code
@@ -57,18 +76,14 @@ def main() -> None:
     ]
 
     # ---------------------------------------------------------
-    # 2. Discover movies locally
+    # Discover movies
     # ---------------------------------------------------------
-
     print("\nDiscovering movies...")
 
     movie_provider = BookMyShowMovieProvider()
-
     movie_result = movie_provider.get_movies(city)
 
-    print(
-        f"Movies discovered: {len(movie_result.movies)}"
-    )
+    print(f"Movies discovered: {len(movie_result.movies)}")
 
     movies = [
         {
@@ -84,9 +99,8 @@ def main() -> None:
     ]
 
     # ---------------------------------------------------------
-    # 3. Build payload
+    # Build upload payload
     # ---------------------------------------------------------
-
     payload = {
         "city": city,
         "city_code": city_code,
@@ -95,13 +109,9 @@ def main() -> None:
     }
 
     # ---------------------------------------------------------
-    # 4. Upload to Render
+    # Upload to Render
     # ---------------------------------------------------------
-
-    url = (
-        f"{RENDER_API_URL}"
-        "/internal/catalogue/ingest"
-    )
+    url = f"{RENDER_API_URL}/internal/catalogue/ingest"
 
     print("\nUploading catalogue...")
     print(f"URL: {url}")
